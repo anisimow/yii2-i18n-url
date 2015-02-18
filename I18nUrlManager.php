@@ -55,6 +55,14 @@ class I18nUrlManager extends UrlManager
             if (in_array($language, $this->languages)) {
                 $request->setPathInfo(substr_replace($pathInfo, '', 0, (strlen($language) + 1)));
                 Yii::$app->language = $language;
+                
+                //redirect without default lang
+                if(!$this->displaySourceLanguage && $language == Yii::$app->sourceLanguage)
+                {
+                    $url = $request->getUrl();
+                    $request->setUrl(str_replace($pathInfo, $request->getPathInfo(), $url));
+                    \Yii::$app->response->redirect($request->getUrl())->send();
+                }
             }
         } else {
             $params = $request->getQueryParams();
@@ -68,6 +76,13 @@ class I18nUrlManager extends UrlManager
                 $params[$this->routeParam] = $route;
                 $request->setQueryParams($params);
                 Yii::$app->language = $language;
+                
+                //redirect without default lang
+                if(!$this->displaySourceLanguage && $language == Yii::$app->sourceLanguage) {
+                    unset($params[$this->routeParam]);
+                    array_unshift($params, $route);
+                    \Yii::$app->response->redirect($this->createUrl($params))->send();
+                }
             }
         }
         return parent::parseRequest($request);
