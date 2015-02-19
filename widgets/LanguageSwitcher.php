@@ -31,10 +31,9 @@ class LanguageSwitcher extends ButtonDropdown
         $languages = isset(Yii::$app->getUrlManager()->languages) ? Yii::$app->getUrlManager()->languages : [];
         if (count($languages) > 1) {
             $items = [];
-            $currentUrl = preg_replace('/' . Yii::$app->language . '\//', '', Yii::$app->getRequest()->getUrl(), 1);
             $isAssociative = ArrayHelper::isAssociative($languages);
             foreach ($languages as $language => $code) {
-                $url = $code . $currentUrl;
+                $url = Url::toRoute([Yii::$app->controller->action->id, 'lang'=>$code])
                 if ($isAssociative) {
                     $item = ['label' => $language, 'url' => $url];
                 } else {
