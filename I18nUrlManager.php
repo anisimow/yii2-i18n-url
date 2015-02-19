@@ -15,22 +15,18 @@ use Yii;
  */
 class I18nUrlManager extends UrlManager
 {
-
     /**
      * @var array Supported languages
      */
     public $languages;
-
     /**
      * @var bool Whether to display the source app language in the URL
      */
     public $displaySourceLanguage = false;
-
     /**
      * @var string Parameter used to set the language
      */
     public $languageParam = 'lang';
-
     /**
      * @inheritdoc
      */
@@ -41,7 +37,6 @@ class I18nUrlManager extends UrlManager
         }
         parent::init();
     }
-
     /**
      * Parses the URL and sets the language accordingly
      * @param \yii\web\Request $request
@@ -55,7 +50,6 @@ class I18nUrlManager extends UrlManager
             if (in_array($language, $this->languages)) {
                 $request->setPathInfo(substr_replace($pathInfo, '', 0, (strlen($language) + 1)));
                 Yii::$app->language = $language;
-                
                 //redirect without default lang
                 if(!$this->displaySourceLanguage && $language == Yii::$app->sourceLanguage)
                 {
@@ -66,28 +60,17 @@ class I18nUrlManager extends UrlManager
             }
         } else {
             $params = $request->getQueryParams();
-            $route = isset($params[$this->routeParam]) ? $params[$this->routeParam] : '';
-            if (is_array($route)) {
-                $route = '';
-            }
-            $language = explode('/', $route)[0];
+            $language= isset($params[$this->languageParam]) ? $params[$this->languageParam] : '';
             if (in_array($language, $this->languages)) {
-                $route = substr_replace($route, '', 0, (strlen($language) + 1));
-                $params[$this->routeParam] = $route;
-                $request->setQueryParams($params);
                 Yii::$app->language = $language;
-                
                 //redirect without default lang
                 if(!$this->displaySourceLanguage && $language == Yii::$app->sourceLanguage) {
-                    unset($params[$this->routeParam]);
-                    array_unshift($params, $route);
                     \Yii::$app->response->redirect($this->createUrl($params))->send();
                 }
             }
         }
         return parent::parseRequest($request);
     }
-
     /**
      * Adds language functionality to URL creation
      * @param array|string $params
@@ -95,18 +78,43 @@ class I18nUrlManager extends UrlManager
      */
     public function createUrl($params)
     {
-        if (array_key_exists($this->languageParam, $params)) {
+        $lang_url = '';
+        $scriptUrl = '';
+        if ($this->enablePrettyUrl && array_key_exists($this->languageParam, $params)) {
             $lang = $params[$this->languageParam];
             if (($lang !== Yii::$app->sourceLanguage || $this->displaySourceLanguage) && !empty($lang)) {
-                $params[0] = $lang . '/' . ltrim($params[0], '/');
+                $lang_url = $lang ;
             }
             unset($params[$this->languageParam]);
         } else {
             if (Yii::$app->language !== Yii::$app->sourceLanguage || $this->displaySourceLanguage) {
-                $params[0] = Yii::$app->language . '/' . ltrim($params[0], '/');
+                $lang_url = Yii::$app->language;
+                if (!$this->enablePrettyUrl && !isset($params[$this->languageParam])) {
+                    $params[$this->languageParam] = $lang_url;
+                }
             }
         }
-        return parent::createUrl($params);
-    }
 
+        if(isset($params[$this->languageParam]) && $params[$this->languageParam] == Yii::$app->sourceLanguage)
+        {
+            unset($params[$this->languageParam]);
+        }
+
+        $url = parent::createUrl($params);
+
+        if($this->showScriptName)
+        {
+            $scriptUrl = $this->getScriptUrl();
+            $url = str_replace($scriptUrl, '', $url);
+        }
+
+        if($this->enablePrettyUrl) {
+            if ($url == '/') {
+                $url = '/' . $lang_url;
+            } elseif (!empty($lang_url)) {
+                $url = '/' . $lang_url . $url;
+            }
+        }
+        return $scriptUrl.$url;
+    }
 }
